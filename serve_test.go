@@ -1,16 +1,17 @@
 package tgin
 
 import (
-	"net/http"
 	"testing"
 )
 
 func TestServer(t *testing.T) {
-	var s Server
-	http.ListenAndServe(":8080", s)
-
-	http.ListenAndServeTLS(":4000",
-		"cret file", "key file", s)
+	s := NewHTTPServer()
+	s.Get("/", func(ctx *Context) {
+		ctx.Resp.Write([]byte("hello, world"))
+	})
+	s.Get("/user", func(ctx *Context) {
+		ctx.Resp.Write([]byte("hello, user"))
+	})
 
 	s.Start(":8081")
 }
