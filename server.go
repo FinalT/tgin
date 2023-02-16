@@ -54,11 +54,12 @@ func (s *HTTPServer) Get(path string, handler HandleFunc) {
 }
 
 func (s *HTTPServer) serve(ctx *Context) {
-	n, ok := s.findRoute(ctx.Req.Method, ctx.Req.URL.Path)
-	if !ok || n.handler == nil {
+	mi, ok := s.findRoute(ctx.Req.Method, ctx.Req.URL.Path)
+	if !ok || mi.n == nil || mi.n.handler == nil {
 		ctx.Resp.WriteHeader(404)
 		ctx.Resp.Write([]byte("Not Found"))
 		return
 	}
-	n.handler(ctx)
+	ctx.PathParams = mi.pathParams
+	mi.n.handler(ctx)
 }
