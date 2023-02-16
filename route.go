@@ -63,6 +63,7 @@ func (r *router) addRoute(method string, path string, handler HandleFunc) {
 		panic(fmt.Sprintf("web: 路由冲突[%s]", path))
 	}
 	root.handler = handler
+	root.route = path
 }
 
 // findRoute 查找对应的节点
@@ -106,6 +107,8 @@ type node struct {
 	children map[string]*node
 	// handler 命中路由之后执行的逻辑
 	handler HandleFunc
+	// route 到达该节点的完整的路由路径
+	route string
 
 	// 通配符 * 表达的节点，任意匹配
 	starChild *node
