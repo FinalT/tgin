@@ -37,6 +37,27 @@ func Test_router_AddRoute(t *testing.T) {
 			method: http.MethodPost,
 			path:   "/login",
 		},
+		// 通配符测试用例
+		{
+			method: http.MethodGet,
+			path:   "/order/*",
+		},
+		{
+			method: http.MethodGet,
+			path:   "/*",
+		},
+		{
+			method: http.MethodGet,
+			path:   "/*/*",
+		},
+		{
+			method: http.MethodGet,
+			path:   "/*/abc",
+		},
+		{
+			method: http.MethodGet,
+			path:   "/*/abc/*",
+		},
 	}
 
 	mockHandler := func(ctx *Context) {}
@@ -47,14 +68,27 @@ func Test_router_AddRoute(t *testing.T) {
 
 	wantRouter := &router{
 		trees: map[string]*node{
-			http.MethodGet: {path: "/", children: map[string]*node{
-				"user": {path: "user", children: map[string]*node{
-					"home": {path: "home", handler: mockHandler},
-				}, handler: mockHandler},
-				"order": {path: "order", children: map[string]*node{
-					"detail": {path: "detail", handler: mockHandler},
-				}},
-			}, handler: mockHandler},
+			http.MethodGet: {
+				path: "/",
+				children: map[string]*node{
+					"user": {path: "user", children: map[string]*node{
+						"home": {path: "home", handler: mockHandler},
+					}, handler: mockHandler},
+					"order": {path: "order", children: map[string]*node{
+						"detail": {path: "detail", handler: mockHandler},
+					}, starChild: &node{path: "*", handler: mockHandler}},
+				},
+				starChild: &node{
+					path: "*",
+					children: map[string]*node{
+						"abc": {
+							path:      "abc",
+							starChild: &node{path: "*", handler: mockHandler},
+							handler:   mockHandler},
+					},
+					starChild: &node{path: "*", handler: mockHandler},
+					handler:   mockHandler},
+				handler: mockHandler},
 			http.MethodPost: {path: "/", children: map[string]*node{
 				"order": {path: "order", children: map[string]*node{
 					"create": {path: "create", handler: mockHandler},
@@ -139,6 +173,13 @@ func (n *node) equal(y *node) (string, bool) {
 		return "", true
 	}
 
+	if n.starChild != nil {
+		str, ok := n.starChild.equal(y.starChild)
+		if !ok {
+			return fmt.Sprintf("%s 通配符节点不匹配 %s", n.path, str), false
+		}
+	}
+
 	for k, v := range n.children {
 		yv, ok := y.children[k]
 		if !ok {
@@ -168,6 +209,14 @@ func Test_router_findRoute(t *testing.T) {
 		{
 			method: http.MethodPost,
 			path:   "/order/create",
+		},
+		{
+			method: http.MethodGet,
+			path:   "/user/*/home",
+		},
+		{
+			method: http.MethodPost,
+			path:   "/order/*",
 		},
 	}
 
@@ -228,6 +277,36 @@ func Test_router_findRoute(t *testing.T) {
 				handler: mockHandler,
 			},
 		},
+		// 通配符匹配
+		{
+			// 命中/order/*
+			name:   "star match",
+			method: http.MethodPost,
+			path:   "/order/delete",
+			found:  true,
+			wantNode: &node{
+				path:    "*",
+				handler: mockHandler,
+			},
+		},
+		{
+			// 命中通配符在中间的
+			// /user/*/home
+			name:   "star in middle",
+			method: http.MethodGet,
+			path:   "/user/Tom/home",
+			found:  true,
+			wantNode: &node{
+				path:    "home",
+				handler: mockHandler,
+			},
+		},
+		{
+			// 比 /order/* 多了一段
+			name:   "overflow",
+			method: http.MethodPost,
+			path:   "/order/delete/123",
+		},
 	}
 
 	r := newRouter()
@@ -242,6 +321,7 @@ func Test_router_findRoute(t *testing.T) {
 			if !found {
 				return
 			}
+			assert.Equal(t, tc.wantNode.path, n.path)
 			wantVal := reflect.ValueOf(tc.wantNode.handler)
 			nVal := reflect.ValueOf(n.handler)
 			assert.Equal(t, wantVal, nVal)
