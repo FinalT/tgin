@@ -3,6 +3,9 @@ module github.com/FinalT/tgin
 go 1.19
 
 require (
+	github.com/google/uuid v1.3.0
+	github.com/hashicorp/golang-lru v0.5.1
+	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/prometheus/client_golang v1.14.0
 	github.com/stretchr/testify v1.8.1
 	go.opentelemetry.io/otel v1.13.0

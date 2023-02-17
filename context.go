@@ -25,15 +25,17 @@ type Context struct {
 	// 命中的路由
 	MatchedRoute string
 
-	// 万一将来有需求，可以考虑支持这个，但是需要复杂一点的机制
-	// Body []byte 用户返回的响应
-	// Err error 用户执行的 Error
-
 	// 缓存的数据
 	cacheQueryValues url.Values
 
 	// 页面渲染的引擎
 	tplEngine TemplateEngine
+
+	// 用户可以自由决定在这里存储什么，
+	// 主要用于解决在不同 Middleware 之间数据传递的问题
+	// 但是要注意
+	// 1. UserValues 在初始状态的时候总是 nil，你需要自己手动初始化
+	UserValues map[string]any
 }
 
 func (c *Context) BindJSON(val any) error {
